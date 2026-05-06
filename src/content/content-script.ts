@@ -24,11 +24,14 @@ function initOnce(): void {
   }
 }
 
-// Start capture as soon as DOM is ready
+// Start capture as soon as DOM is ready.
+// Wrap in try-catch so a failure in initOnce() never prevents the
+// message listener below from being registered — PING must always work.
+function safeInit() { try { initOnce(); } catch { /* passive capture failing is non-fatal */ } }
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initOnce);
+  document.addEventListener('DOMContentLoaded', safeInit);
 } else {
-  initOnce();
+  safeInit();
 }
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
