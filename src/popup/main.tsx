@@ -15,9 +15,17 @@ async function ensureContentScript(tabId: number): Promise<void> {
   try {
     await chrome.tabs.sendMessage(tabId, { type: 'PING' });
   } catch {
-    // Content script not loaded — inject it dynamically, then wait for it to initialise
-    await chrome.scripting.executeScript({ target: { tabId }, files: ['assets/content.js'] });
-    await new Promise(res => setTimeout(res, 200));
+    // Content script not running — try dynamic injection
+    try {
+      await chrome.scripting.executeScript({ target: { tabId }, files: ['assets/content.js'] });
+      await new Promise(res => setTimeout(res, 300));
+    } catch (injectErr) {
+      throw new Error(
+        `Extension cannot access this page. ` +
+        `If you just updated the extension, go to chrome://extensions, click Reload on AutoFill AI, then refresh this page. ` +
+        `(${String(injectErr)})`
+      );
+    }
   }
 }
 
@@ -65,7 +73,7 @@ function App() {
       setScanResult(result);
       setStatus(`${result.ats.toUpperCase()} · ${result.fields.length} fields · ${Math.round(result.confidence * 100)}% confidence`);
     } catch (e) {
-      setError('Could not scan. Make sure you are on a job application page and the extension has permission to run here.');
+      setError(e instanceof Error ? e.message : 'Could not scan. Make sure you are on a job application page.');
       setStatus('');
     }
   }
