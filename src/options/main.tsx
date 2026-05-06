@@ -56,18 +56,22 @@ function App() {
   async function loadOrCreate() {
     setError('');
     if (passphrase.length < 8) { setError('Passphrase must be at least 8 characters.'); return; }
-    const r = await bg<{ profile: CandidateProfile | null }>({ type: 'LOAD_PROFILE', passphrase });
-    if (r.profile) {
-      setProfile(r.profile);
-      setIsNew(false);
-      setUnlocked(true);
-      setStatus('Profile loaded.');
-    } else {
-      if (!confirmPass) { setError('No existing profile found. Enter confirm passphrase to create one.'); return; }
-      if (passphrase !== confirmPass) { setError('Passphrases do not match.'); return; }
-      setUnlocked(true);
-      setIsNew(true);
-      setStatus('New profile. Fill in your details and click Save.');
+    try {
+      const r = await bg<{ profile?: CandidateProfile; ok?: boolean; error?: string }>({ type: 'LOAD_PROFILE', passphrase });
+      if (r?.profile) {
+        setProfile(r.profile);
+        setIsNew(false);
+        setUnlocked(true);
+        setStatus('Profile loaded.');
+      } else {
+        if (!confirmPass) { setError('No existing profile found. Enter a confirm passphrase to create one.'); return; }
+        if (passphrase !== confirmPass) { setError('Passphrases do not match.'); return; }
+        setUnlocked(true);
+        setIsNew(true);
+        setStatus('New profile — fill in your details and click Save.');
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Could not reach the extension background. Try closing and reopening this page.');
     }
   }
 
@@ -76,20 +80,28 @@ function App() {
     if (!profile.personal.email || !profile.personal.firstName) {
       setError('First name and email are required.'); return;
     }
-    const r = await bg<{ ok: boolean; error?: string }>({ type: 'SAVE_PROFILE', profile, passphrase });
-    if (!r.ok) { setError(r.error ?? 'Save failed.'); return; }
-    setStatus('Profile saved and encrypted locally.');
-    setIsNew(false);
+    try {
+      const r = await bg<{ ok: boolean; error?: string }>({ type: 'SAVE_PROFILE', profile, passphrase });
+      if (!r?.ok) { setError(r?.error ?? 'Save failed.'); return; }
+      setStatus('Profile saved and encrypted locally.');
+      setIsNew(false);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Save failed. Try closing and reopening this page.');
+    }
   }
 
   async function deleteProfileHandler() {
     if (!confirm('Delete your local profile? This cannot be undone.')) return;
-    await bg({ type: 'DELETE_PROFILE' });
-    setProfile(emptyProfile);
-    setUnlocked(false);
-    setPassphrase('');
-    setConfirmPass('');
-    setStatus('Profile deleted.');
+    try {
+      await bg({ type: 'DELETE_PROFILE' });
+      setProfile(emptyProfile);
+      setUnlocked(false);
+      setPassphrase('');
+      setConfirmPass('');
+      setStatus('Profile deleted.');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Delete failed.');
+    }
   }
 
   function addCustomAnswer() {
