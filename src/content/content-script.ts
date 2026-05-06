@@ -33,6 +33,11 @@ if (document.readyState === 'loading') {
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   void (async () => {
+    if (message.type === 'PING') {
+      sendResponse({ ok: true });
+      return;
+    }
+
     if (message.type === 'SCAN_PAGE') {
       const profile = message.profile as CandidateProfile;
       const { adapter, confidence } = getBestAdapter();

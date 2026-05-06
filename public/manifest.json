@@ -16,7 +16,17 @@
     "https://*.smartrecruiters.com/*",
     "https://*.icims.com/*",
     "https://*.bamboohr.com/*",
-    "https://*.taleo.net/*"
+    "https://*.taleo.net/*",
+    "https://*.applytojob.com/*",
+    "https://*.jobvite.com/*",
+    "https://*.recruitee.com/*",
+    "https://*.workable.com/*",
+    "https://*.breezy.hr/*",
+    "https://*.pinpointhq.com/*",
+    "https://*.dover.com/*",
+    "https://*.rippling.com/*",
+    "https://*.jazz.co/*",
+    "https://*.jazzhr.com/*"
   ],
   "action": {
     "default_popup": "src/popup/index.html",
@@ -41,7 +51,17 @@
         "https://*.smartrecruiters.com/*",
         "https://*.icims.com/*",
         "https://*.bamboohr.com/*",
-        "https://*.taleo.net/*"
+        "https://*.taleo.net/*",
+        "https://*.applytojob.com/*",
+        "https://*.jobvite.com/*",
+        "https://*.recruitee.com/*",
+        "https://*.workable.com/*",
+        "https://*.breezy.hr/*",
+        "https://*.pinpointhq.com/*",
+        "https://*.dover.com/*",
+        "https://*.rippling.com/*",
+        "https://*.jazz.co/*",
+        "https://*.jazzhr.com/*"
       ],
       "js": ["assets/content.js"],
       "run_at": "document_idle"

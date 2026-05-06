@@ -11,6 +11,16 @@ async function activeTabId(): Promise<number> {
   return tab.id;
 }
 
+async function ensureContentScript(tabId: number): Promise<void> {
+  try {
+    await chrome.tabs.sendMessage(tabId, { type: 'PING' });
+  } catch {
+    // Content script not loaded — inject it dynamically, then wait for it to initialise
+    await chrome.scripting.executeScript({ target: { tabId }, files: ['assets/content.js'] });
+    await new Promise(res => setTimeout(res, 200));
+  }
+}
+
 function bg<T>(msg: Record<string, unknown>): Promise<T> {
   return chrome.runtime.sendMessage(msg) as Promise<T>;
 }
@@ -50,11 +60,12 @@ function App() {
       const tabId = await activeTabId();
       const profileRes = await bg<{ profile: unknown }>({ type: 'GET_SESSION_PROFILE' });
       if (!profileRes.profile) { setError('No profile loaded. Please unlock first.'); setStatus(''); return; }
+      await ensureContentScript(tabId);
       const result = await chrome.tabs.sendMessage(tabId, { type: 'SCAN_PAGE', profile: profileRes.profile }) as ScanResult;
       setScanResult(result);
       setStatus(`${result.ats.toUpperCase()} · ${result.fields.length} fields · ${Math.round(result.confidence * 100)}% confidence`);
     } catch (e) {
-      setError('Could not scan. Make sure you are on a job application page.');
+      setError('Could not scan. Make sure you are on a job application page and the extension has permission to run here.');
       setStatus('');
     }
   }
