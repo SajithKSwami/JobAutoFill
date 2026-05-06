@@ -19,7 +19,7 @@ async function ensureContentScript(tabId: number): Promise<void> {
   if (await ping(tabId)) return;
 
   try {
-    await chrome.scripting.executeScript({ target: { tabId }, files: ['assets/content.js'] });
+    await chrome.scripting.executeScript({ target: { tabId, allFrames: true }, files: ['assets/content.js'] });
   } catch (injectErr) {
     throw new Error(
       `Extension cannot access this page. ` +
