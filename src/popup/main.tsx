@@ -15,6 +15,34 @@ function ping(tabId: number): Promise<boolean> {
   return chrome.tabs.sendMessage(tabId, { type: 'PING' }).then(() => true).catch(() => false);
 }
 
+async function findFormFrame(tabId: number): Promise<number> {
+  try {
+    const results = await chrome.scripting.executeScript({
+      target: { tabId, allFrames: true },
+      func: () => {
+        const visible = (el: Element) => {
+          const s = window.getComputedStyle(el);
+          const r = el.getBoundingClientRect();
+          return s.display !== 'none' && s.visibility !== 'hidden' && r.width > 0 && r.height > 0;
+        };
+        return [...document.querySelectorAll('input, textarea, select')]
+          .filter(el => !((el as HTMLInputElement).disabled || (el as HTMLInputElement).readOnly))
+          .filter(el => !['hidden','submit','button','reset','password'].includes((el as HTMLInputElement).type))
+          .filter(visible).length;
+      },
+    });
+    let best = 0;
+    let bestCount = 0;
+    for (const r of results) {
+      const count = (r.result as number) ?? 0;
+      if (count > bestCount) { bestCount = count; best = r.frameId ?? 0; }
+    }
+    return best;
+  } catch {
+    return 0;
+  }
+}
+
 async function ensureContentScript(tabId: number): Promise<void> {
   if (await ping(tabId)) return;
 
@@ -50,6 +78,7 @@ function App() {
   const [status, setStatus] = useState('');
   const [error, setError] = useState('');
   const [scanResult, setScanResult] = useState<ScanResult | null>(null);
+  const [activeFrameId, setActiveFrameId] = useState<number>(0);
   const [captureSession, setCaptureSession] = useState<CaptureSession | null>(null);
   const [preview, setPreview] = useState<ProfileMergePreview | null>(null);
   const [accepted, setAccepted] = useState<Set<string>>(new Set());
@@ -80,7 +109,9 @@ function App() {
       const profileRes = await bg<{ profile: unknown }>({ type: 'GET_SESSION_PROFILE' });
       if (!profileRes.profile) { setError('No profile loaded. Please unlock first.'); setStatus(''); return; }
       await ensureContentScript(tabId);
-      const result = await chrome.tabs.sendMessage(tabId, { type: 'SCAN_PAGE', profile: profileRes.profile }) as ScanResult;
+      const frameId = await findFormFrame(tabId);
+      setActiveFrameId(frameId);
+      const result = await chrome.tabs.sendMessage(tabId, { type: 'SCAN_PAGE', profile: profileRes.profile }, { frameId }) as ScanResult;
       setScanResult(result);
       setStatus(`${result.ats.toUpperCase()} · ${result.fields.length} fields · ${Math.round(result.confidence * 100)}% confidence`);
     } catch (e) {
@@ -99,7 +130,7 @@ function App() {
     if (!safeMappings.length) { setError('No high-confidence fields to fill.'); return; }
     setStatus('Filling fields…');
     const tabId = await activeTabId();
-    const r = await chrome.tabs.sendMessage(tabId, { type: 'FILL_PAGE', mappings: safeMappings }) as { filled: string[] };
+    const r = await chrome.tabs.sendMessage(tabId, { type: 'FILL_PAGE', mappings: safeMappings }, { frameId: activeFrameId }) as { filled: string[] };
     setStatus(`Filled ${r.filled.length} fields. Review before submitting.`);
   }
 
@@ -107,7 +138,7 @@ function App() {
     clearError();
     setStatus('Reading captured data…');
     const tabId = await activeTabId();
-    const session = await chrome.tabs.sendMessage(tabId, { type: 'GET_CAPTURE' }) as CaptureSession;
+    const session = await chrome.tabs.sendMessage(tabId, { type: 'GET_CAPTURE' }, { frameId: activeFrameId }) as CaptureSession;
     if (!session.fields.length) { setError('No data captured yet. Fill the form first, then click this.'); setStatus(''); return; }
     setCaptureSession(session);
 
@@ -132,7 +163,7 @@ function App() {
       type: 'SAVE_MERGE', capture: captureSession, passphrase, accepted: [...accepted],
     });
     if (!r.ok) { setError(r.error ?? 'Save failed.'); return; }
-    await chrome.tabs.sendMessage(await activeTabId(), { type: 'CLEAR_CAPTURE' });
+    await chrome.tabs.sendMessage(await activeTabId(), { type: 'CLEAR_CAPTURE' }, { frameId: activeFrameId });
     setCaptureSession(null);
     setPreview(null);
     setView('main');
@@ -244,6 +275,7 @@ function App() {
           setView('lock');
           setPassphrase('');
           setScanResult(null);
+          setActiveFrameId(0);
         }}>🔒</button>
       </header>
 
