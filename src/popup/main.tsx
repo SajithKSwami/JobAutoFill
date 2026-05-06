@@ -11,21 +11,32 @@ async function activeTabId(): Promise<number> {
   return tab.id;
 }
 
+function ping(tabId: number): Promise<boolean> {
+  return chrome.tabs.sendMessage(tabId, { type: 'PING' }).then(() => true).catch(() => false);
+}
+
 async function ensureContentScript(tabId: number): Promise<void> {
+  if (await ping(tabId)) return;
+
   try {
-    await chrome.tabs.sendMessage(tabId, { type: 'PING' });
-  } catch {
-    // Content script not running — try dynamic injection
-    try {
-      await chrome.scripting.executeScript({ target: { tabId }, files: ['assets/content.js'] });
-      await new Promise(res => setTimeout(res, 300));
-    } catch (injectErr) {
-      throw new Error(
-        `Extension cannot access this page. ` +
-        `If you just updated the extension, go to chrome://extensions, click Reload on AutoFill AI, then refresh this page. ` +
-        `(${String(injectErr)})`
-      );
-    }
+    await chrome.scripting.executeScript({ target: { tabId }, files: ['assets/content.js'] });
+  } catch (injectErr) {
+    throw new Error(
+      `Extension cannot access this page. ` +
+      `Go to chrome://extensions, click Reload on AutoFill AI, then refresh the job page. ` +
+      `(${String(injectErr)})`
+    );
+  }
+
+  // Give the script time to register its message listener
+  await new Promise(res => setTimeout(res, 400));
+
+  if (!await ping(tabId)) {
+    throw new Error(
+      'Content script injected but not responding. ' +
+      'The page may have a Content Security Policy that blocks it, or there is a script error. ' +
+      'Try refreshing the page.'
+    );
   }
 }
 
@@ -73,7 +84,10 @@ function App() {
       setScanResult(result);
       setStatus(`${result.ats.toUpperCase()} · ${result.fields.length} fields · ${Math.round(result.confidence * 100)}% confidence`);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Could not scan. Make sure you are on a job application page.');
+      const msg = e instanceof Error ? e.message
+        : (e && typeof e === 'object' && 'message' in e) ? String((e as { message: unknown }).message)
+        : 'Could not scan. Make sure you are on a job application page.';
+      setError(msg);
       setStatus('');
     }
   }

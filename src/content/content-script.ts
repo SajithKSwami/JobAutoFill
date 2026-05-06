@@ -33,42 +33,46 @@ if (document.readyState === 'loading') {
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   void (async () => {
-    if (message.type === 'PING') {
-      sendResponse({ ok: true });
-      return;
-    }
+    try {
+      if (message.type === 'PING') {
+        sendResponse({ ok: true });
+        return;
+      }
 
-    if (message.type === 'SCAN_PAGE') {
-      const profile = message.profile as CandidateProfile;
-      const { adapter, confidence } = getBestAdapter();
-      const fields = adapter.scan();
-      lastSelectors = new Map(fields.map(f => [f.id, f.selector]));
-      initCapture(adapter.name, fields);
-      watchForNewFields(() => {
-        const fresh = adapter.scan();
-        lastSelectors = new Map(fresh.map(f => [f.id, f.selector]));
-        return fresh;
-      });
-      const mappings = adapter.map(fields, profile);
-      const warnings: string[] = [];
-      if (confidence < 0.5) warnings.push('ATS not recognized – using generic field detection.');
-      const result: ScanResult = { ats: adapter.name, confidence, fields, mappings, warnings };
-      sendResponse(result);
-    }
+      if (message.type === 'SCAN_PAGE') {
+        const profile = message.profile as CandidateProfile;
+        const { adapter, confidence } = getBestAdapter();
+        const fields = adapter.scan();
+        lastSelectors = new Map(fields.map(f => [f.id, f.selector]));
+        initCapture(adapter.name, fields);
+        watchForNewFields(() => {
+          const fresh = adapter.scan();
+          lastSelectors = new Map(fresh.map(f => [f.id, f.selector]));
+          return fresh;
+        });
+        const mappings = adapter.map(fields, profile);
+        const warnings: string[] = [];
+        if (confidence < 0.5) warnings.push('ATS not recognized – using generic field detection.');
+        const result: ScanResult = { ats: adapter.name, confidence, fields, mappings, warnings };
+        sendResponse(result);
+      }
 
-    if (message.type === 'FILL_PAGE') {
-      const mappings = message.mappings as FieldMapping[];
-      const filled = fillMappings(mappings, lastSelectors);
-      sendResponse({ filled });
-    }
+      if (message.type === 'FILL_PAGE') {
+        const mappings = message.mappings as FieldMapping[];
+        const filled = fillMappings(mappings, lastSelectors);
+        sendResponse({ filled });
+      }
 
-    if (message.type === 'GET_CAPTURE') {
-      sendResponse(getCaptureSession());
-    }
+      if (message.type === 'GET_CAPTURE') {
+        sendResponse(getCaptureSession());
+      }
 
-    if (message.type === 'CLEAR_CAPTURE') {
-      clearCapture();
-      sendResponse({ ok: true });
+      if (message.type === 'CLEAR_CAPTURE') {
+        clearCapture();
+        sendResponse({ ok: true });
+      }
+    } catch (err) {
+      sendResponse({ error: err instanceof Error ? err.message : String(err) });
     }
   })();
   return true;
