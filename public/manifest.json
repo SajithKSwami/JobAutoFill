@@ -1,0 +1,50 @@
+{
+  "manifest_version": 3,
+  "name": "AutoFill AI",
+  "version": "0.1.0",
+  "description": "Privacy-first job application autofill. Fills forms from your local encrypted profile. No cloud. No tracking.",
+  "permissions": ["activeTab", "scripting", "storage"],
+  "host_permissions": [
+    "https://boards.greenhouse.io/*",
+    "https://*.greenhouse.io/*",
+    "https://jobs.lever.co/*",
+    "https://*.lever.co/*",
+    "https://*.myworkdayjobs.com/*",
+    "https://*.workday.com/*",
+    "https://jobs.ashbyhq.com/*",
+    "https://*.ashbyhq.com/*",
+    "https://*.smartrecruiters.com/*",
+    "https://*.icims.com/*",
+    "https://*.bamboohr.com/*",
+    "https://*.taleo.net/*"
+  ],
+  "action": {
+    "default_popup": "src/popup/index.html",
+    "default_title": "AutoFill AI"
+  },
+  "options_page": "src/options/index.html",
+  "background": {
+    "service_worker": "assets/background.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://boards.greenhouse.io/*",
+        "https://*.greenhouse.io/*",
+        "https://jobs.lever.co/*",
+        "https://*.lever.co/*",
+        "https://*.myworkdayjobs.com/*",
+        "https://*.workday.com/*",
+        "https://jobs.ashbyhq.com/*",
+        "https://*.ashbyhq.com/*",
+        "https://*.smartrecruiters.com/*",
+        "https://*.icims.com/*",
+        "https://*.bamboohr.com/*",
+        "https://*.taleo.net/*"
+      ],
+      "js": ["assets/content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}
