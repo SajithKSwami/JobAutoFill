@@ -4,9 +4,9 @@ import { scanDomFields } from '../content/domScanner';
 import { genericAdapter } from './genericAdapter';
 import { getByPath } from '../shared/objectPath';
 
-// Ashby uses name attributes and testid attributes
+// Ashby uses name attributes and testid attributes.
+// _systemfield_name is a full-name field — value computed at map time.
 const knownFields: Record<string, string> = {
-  '_systemfield_name': 'personal.firstName',
   '_systemfield_email': 'personal.email',
   '_systemfield_phone': 'personal.phone',
   '_systemfield_linkedin_url': 'personal.linkedin',
@@ -32,6 +32,15 @@ export const ashbyAdapter: AtsAdapter = {
 
   map(fields: DetectedField[], profile: CandidateProfile): FieldMapping[] {
     const exact = fields.flatMap(field => {
+      // Full-name field: combine first + last
+      if (field.name === '_systemfield_name') {
+        const first = String(getByPath(profile, 'personal.firstName') ?? '').trim();
+        const last = String(getByPath(profile, 'personal.lastName') ?? '').trim();
+        const full = [first, last].filter(Boolean).join(' ');
+        if (!full) return [];
+        return [{ fieldId: field.id, profilePath: 'personal.firstName', value: full, confidence: 0.94, reason: 'Ashby full name field' }] as FieldMapping[];
+      }
+
       const path = knownFields[field.name || ''];
       if (!path) return [];
       const value = getByPath(profile, path);

@@ -14,7 +14,6 @@ const automationIdMap: Record<string, string> = {
   'addressSection_countryRegion': 'personal.country',
   'linkedInUrl': 'personal.linkedin',
   'portfolioUrl': 'personal.portfolio',
-  'howDidYouHearAboutUs': 'personal.portfolio',
 };
 
 export const workdayAdapter: AtsAdapter = {

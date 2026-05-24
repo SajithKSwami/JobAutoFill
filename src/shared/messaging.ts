@@ -14,7 +14,9 @@ export type BackgroundMessage =
   | { type: 'SAVE_PROFILE'; profile: CandidateProfile; passphrase: string }
   | { type: 'PREVIEW_MERGE'; capture: CaptureSession; passphrase: string }
   | { type: 'SAVE_MERGE'; capture: CaptureSession; passphrase: string; accepted: string[] }
-  | { type: 'PROFILE_EXISTS' };
+  | { type: 'PROFILE_EXISTS' }
+  | { type: 'GET_SESSION_PROFILE' }
+  | { type: 'DELETE_PROFILE' };
 
 export type BackgroundResponse =
   | { ok: true }

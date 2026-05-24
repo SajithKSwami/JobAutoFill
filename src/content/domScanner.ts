@@ -28,7 +28,8 @@ function labelFor(el: HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
   const labelledBy = el.getAttribute('aria-labelledby');
   const ariaText = labelledBy ? labelledBy.split(' ').map(id => document.getElementById(id)?.innerText || '').join(' ') : '';
   const nearby = el.closest('label, div, li, fieldset')?.textContent?.slice(0, 200) || '';
-  return [labels, aria, ariaText, el.placeholder, el.name, el.id, nearby].filter(Boolean).join(' ').replace(/\s+/g, ' ').trim();
+  const placeholder = el instanceof HTMLSelectElement ? '' : el.placeholder;
+  return [labels, aria, ariaText, placeholder, el.name, el.id, nearby].filter(Boolean).join(' ').replace(/\s+/g, ' ').trim();
 }
 
 export function scanDomFields(): DetectedField[] {

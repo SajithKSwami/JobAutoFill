@@ -11,7 +11,6 @@ const knownFields: Record<string, string> = {
   email: 'personal.email',
   phone: 'personal.phone',
   'job_application[answers_attributes][0][text_value]': 'personal.linkedin',
-  resume: 'personal.portfolio', // resume upload guidance
 };
 
 export const greenhouseAdapter: AtsAdapter = {

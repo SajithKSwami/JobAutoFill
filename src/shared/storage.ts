@@ -18,44 +18,60 @@ function openDb(): Promise<IDBDatabase> {
 
 export async function profileExists(): Promise<boolean> {
   const db = await openDb();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE, 'readonly');
-    const req = tx.objectStore(STORE).getKey(KEY);
-    req.onsuccess = () => resolve(req.result !== undefined);
-    req.onerror = () => reject(req.error);
-  });
+  try {
+    return await new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE, 'readonly');
+      const req = tx.objectStore(STORE).getKey(KEY);
+      req.onsuccess = () => resolve(req.result !== undefined);
+      req.onerror = () => reject(req.error);
+    });
+  } finally {
+    db.close();
+  }
 }
 
 export async function saveEncryptedProfile(profile: CandidateProfile, passphrase: string): Promise<void> {
   const db = await openDb();
   const payload = await encryptJson(profile, passphrase);
-  await new Promise<void>((resolve, reject) => {
-    const tx = db.transaction(STORE, 'readwrite');
-    tx.objectStore(STORE).put(payload, KEY);
-    tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error);
-  });
+  try {
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction(STORE, 'readwrite');
+      tx.objectStore(STORE).put(payload, KEY);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  } finally {
+    db.close();
+  }
 }
 
 export async function loadEncryptedProfile(passphrase: string): Promise<CandidateProfile | null> {
   const db = await openDb();
-  const payload = await new Promise<EncryptedPayload | undefined>((resolve, reject) => {
-    const tx = db.transaction(STORE, 'readonly');
-    const req = tx.objectStore(STORE).get(KEY);
-    req.onsuccess = () => resolve(req.result as EncryptedPayload | undefined);
-    req.onerror = () => reject(req.error);
-  });
-  return payload ? decryptJson<CandidateProfile>(payload, passphrase) : null;
+  try {
+    const payload = await new Promise<EncryptedPayload | undefined>((resolve, reject) => {
+      const tx = db.transaction(STORE, 'readonly');
+      const req = tx.objectStore(STORE).get(KEY);
+      req.onsuccess = () => resolve(req.result as EncryptedPayload | undefined);
+      req.onerror = () => reject(req.error);
+    });
+    return payload ? decryptJson<CandidateProfile>(payload, passphrase) : null;
+  } finally {
+    db.close();
+  }
 }
 
 export async function deleteProfile(): Promise<void> {
   const db = await openDb();
-  await new Promise<void>((resolve, reject) => {
-    const tx = db.transaction(STORE, 'readwrite');
-    tx.objectStore(STORE).delete(KEY);
-    tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error);
-  });
+  try {
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction(STORE, 'readwrite');
+      tx.objectStore(STORE).delete(KEY);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  } finally {
+    db.close();
+  }
 }
 
 export function previewMerge(capture: CaptureSession, profile: CandidateProfile): ProfileMergePreview {
