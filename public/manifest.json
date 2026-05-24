@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "AutoFill AI",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Privacy-first job application autofill. Fills forms from your local encrypted profile. No cloud. No tracking.",
   "permissions": ["activeTab", "scripting", "storage"],
   "host_permissions": [
